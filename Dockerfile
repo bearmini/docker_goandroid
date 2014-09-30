@@ -8,7 +8,7 @@ WORKDIR /tmp
 
 CMD ["/sbin/my_init"]
 
-# install java
+# install dependencies
 RUN \
     echo debconf debconf/frontend select Noninteractive | debconf-set-selections && \
     echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
@@ -33,13 +33,16 @@ RUN \
 # install Android SDK
 ENV ANDROID_SDK_REV r23.0.2
 RUN mkdir /android
-# we cannot use the standalone sdk because it contains 32 bit binaries which can't be running on 64bit docker container
-#RUN wget http://dl.google.com/android/android-sdk_$ANDROID_SDK_REV-linux.tgz
-#RUN tar zxf android-sdk_$ANDROID_SDK_REV-linux.tgz
-#RUN mv android-sdk-linux /android/sdk
+
 RUN wget https://dl.google.com/android/adt/adt-bundle-linux-x86_64-20140702.zip
 RUN unzip /tmp/adt-bundle-linux-x86_64-20140702.zip
 RUN mv adt-bundle-linux-x86_64-20140702/sdk /android/
+
+# you may be using standalone sdk instead of adt bundle.
+#RUN wget http://dl.google.com/android/android-sdk_$ANDROID_SDK_REV-linux.tgz
+#RUN tar zxf android-sdk_$ANDROID_SDK_REV-linux.tgz
+#RUN mv android-sdk-linux /android/sdk
+
 RUN (sleep 5; while [ 1 ]; do sleep 1; echo y; done ) | /android/sdk/tools/android update sdk --no-ui --filter platform,tool,platform-tool
 
 # install Android NDK
