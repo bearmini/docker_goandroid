@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 CID=$(docker ps --latest --quiet)
-docker-enter $CID /bin/bash
+sudo docker-enter $CID /bin/bash

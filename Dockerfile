@@ -71,6 +71,7 @@ RUN echo 'username = Takashi Oguma<bear.mini@gmail.com>' >> $GODIR/.hg/hgrc
 RUN cd $GODIR/src && hg qpush -a && CGO_ENABLED=0 GOOS=linux GOARCH=arm ./make.bash CC="$NDK_ROOT/bin/arm-linux-androideabi-gcc" GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=1
 RUN echo 'export ANDROID_HOME=/android/sdk' >> $HOME/.bashrc
 RUN cd $GOANDROID_DIR/hello-gl2 && ./build.sh && ant -f android/build.xml clean debug
+RUN cd $GOANDROID_DIR/native-activity && ./build.sh && ant -f android/build.xml clean debug
 
 RUN echo 'export HOME=/root' >> $HOME/.bashrc
 
