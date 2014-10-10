@@ -18,9 +18,11 @@ RUN \
     apt-get update && \
     apt-get install -y \
         ant \
+        cmake \
         git \
         libegl1-mesa-dev \
         libgles2-mesa-dev \
+        libglu1-mesa-dev \
         libncurses5:i386 \
         libstdc++6:i386 \
         mercurial \
@@ -28,6 +30,7 @@ RUN \
         oracle-java8-set-default \
         unzip \
         xdotool \
+        xorg-dev \
         zlib1g:i386
 
 # install Android SDK
@@ -74,6 +77,17 @@ RUN cd $GOANDROID_DIR/hello-gl2 && ./build.sh && ant -f android/build.xml clean 
 RUN cd $GOANDROID_DIR/native-activity && ./build.sh && ant -f android/build.xml clean debug
 
 RUN echo 'export HOME=/root' >> $HOME/.bashrc
+RUN echo 'export PATH=$PATH:/root/goandroid/go/bin' >> $HOME/.bashrc
+RUN echo 'export GOPATH=/root/gopath' >> $HOME/.bashrc
+
+# setup GLFW3
+RUN mkdir $HOME/gopath
+RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/egl
+#RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/opengles2
+RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/bearmini/opengles2
+RUN git clone https://github.com/glfw/glfw.git $HOME/glfw && cd $HOME/glfw && mkdir build
+RUN cd $HOME/glfw/build && cmake -DBUILD_SHARED_LIBS=on .. && make
+#RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/go-gl/glfw3
 
 # clean up
 #RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
