@@ -86,8 +86,11 @@ RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/egl
 #RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/opengles2
 RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/bearmini/opengles2
 RUN git clone https://github.com/glfw/glfw.git $HOME/glfw && cd $HOME/glfw && mkdir build
-RUN cd $HOME/glfw/build && cmake -DBUILD_SHARED_LIBS=on .. && make
-#RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/go-gl/glfw3
+RUN cd $HOME/glfw/build && cmake -DBUILD_SHARED_LIBS=on .. && make && make install
+RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/go-gl/glfw3
+RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/jingweno/gotask
+RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/mandala
+RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/mandala-template
 
 # clean up
 #RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
