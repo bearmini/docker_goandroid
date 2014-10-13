@@ -1,12 +1,24 @@
 FROM phusion/baseimage:latest
 
-ENV HOME /root
-ENV ANDROID_HOME /android/sdk
-ENV NDK_ROOT /android/ndk32-toolchains
-
+CMD ["/sbin/my_init"]
 WORKDIR /tmp
 
-CMD ["/sbin/my_init"]
+ENV HOME /root
+ENV ANDROID_HOME /android/sdk
+ENV ANDROID_SDK_REV r23.0.2
+ENV ANDROID_NDK_REV r10b
+ENV NDK_ROOT /android/ndk32-toolchains
+ENV GOANDROID_DIR $HOME/goandroid
+ENV GOROOT $GOANDROID_DIR/go
+ENV GOPATH $HOME/gopath
+
+RUN echo 'export HOME=/root' >> $HOME/.bashrc
+RUN echo 'export ANDROID_HOME=/android/sdk' >> $HOME/.bashrc
+RUN echo 'export NDK_ROOT=/android/ndk32-toolchains' >> $HOME/.bashrc
+RUN echo 'export GOANDROID_DIR=/root/goandroid' >> $HOME/.bashrc
+RUN echo 'export GOROOT=$GOANDROID_DIR/go' >> $HOME/.bashrc
+RUN echo 'export GOPATH=/root/gopath' >> $HOME/.bashrc
+RUN echo 'export PATH=$PATH:/android/sdk/platform-tools:/android/sdk/build-tools:/android/sdk/tools:$GOROOT/bin:$GOPATH/bin' >> $HOME/.bashrc
 
 # install dependencies
 RUN \
@@ -33,65 +45,62 @@ RUN \
         xorg-dev \
         zlib1g:i386
 
+###
 # install Android SDK
-ENV ANDROID_SDK_REV r23.0.2
 RUN mkdir /android
 
-RUN wget https://dl.google.com/android/adt/adt-bundle-linux-x86_64-20140702.zip
-RUN unzip /tmp/adt-bundle-linux-x86_64-20140702.zip
-RUN mv adt-bundle-linux-x86_64-20140702/sdk /android/
+# install ADT-bundle (you can choose either ADT-bundle or standalone SDK)
+#RUN wget -q https://dl.google.com/android/adt/adt-bundle-linux-x86_64-20140702.zip
+#RUN unzip /tmp/adt-bundle-linux-x86_64-20140702.zip
+#RUN mv adt-bundle-linux-x86_64-20140702/sdk /android/
 
-# you may be using standalone sdk instead of adt bundle.
-#RUN wget http://dl.google.com/android/android-sdk_$ANDROID_SDK_REV-linux.tgz
-#RUN tar zxf android-sdk_$ANDROID_SDK_REV-linux.tgz
-#RUN mv android-sdk-linux /android/sdk
+# install standalone SDK (you can choose either ADT-bundle or standalone SDK)
+RUN wget -q http://dl.google.com/android/android-sdk_$ANDROID_SDK_REV-linux.tgz
+RUN tar zxf android-sdk_$ANDROID_SDK_REV-linux.tgz
+RUN mv android-sdk-linux /android/sdk
 
 RUN (sleep 5; while [ 1 ]; do sleep 1; echo y; done ) | /android/sdk/tools/android update sdk --no-ui --filter platform,tool,platform-tool
 
+###
 # install Android NDK
-ENV ANDROID_NDK_REV r10b
-RUN wget http://dl.google.com/android/ndk/android-ndk32-$ANDROID_NDK_REV-linux-x86_64.tar.bz2
+RUN wget -q http://dl.google.com/android/ndk/android-ndk32-$ANDROID_NDK_REV-linux-x86_64.tar.bz2
 RUN tar jxf android-ndk32-$ANDROID_NDK_REV-linux-x86_64.tar.bz2
-RUN mv android-ndk-r10b /android/ndk32
+RUN mv android-ndk-$ANDROID_NDK_REV /android/ndk32
 
 # setup NDK
 RUN /bin/bash /android/ndk32/build/tools/make-standalone-toolchain.sh --platform=android-9 --install-dir=/android/ndk32-toolchains --system=linux-x86_64
-RUN echo 'export NDK_ROOT=/android/ndk32-toolchains' >> $HOME/.bashrc
 
-# clone goandroid
-ENV GOANDROID_DIR $HOME/goandroid
+###
+# install goandroid and setup Go 1.2.2 for goandroid
 RUN git clone https://github.com/eliasnaur/goandroid.git $GOANDROID_DIR
+RUN hg clone -u go1.2.2 https://code.google.com/p/go $GOROOT
+RUN cp -a $GOANDROID_DIR/patches $GOROOT/.hg
+RUN echo '[extensions]' >> $GOROOT/.hg/hgrc
+RUN echo 'mq = ' >> $GOROOT/.hg/hgrc
+RUN echo 'codereview = !' >> $GOROOT/.hg/hgrc
+RUN echo '[ui]' >> $GOROOT/.hg/hgrc
+RUN echo 'username = Takashi Oguma<bear.mini@gmail.com>' >> $GOROOT/.hg/hgrc
+RUN cd $GOROOT/src && hg qpush -a && CGO_ENABLED=0 GOOS=linux GOARCH=arm ./make.bash CC="$NDK_ROOT/bin/arm-linux-androideabi-gcc" GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=1
+#RUN cd $GOANDROID_DIR/hello-gl2 && ./build.sh && ant -f android/build.xml clean debug
+#RUN cd $GOANDROID_DIR/native-activity && ./build.sh && ant -f android/build.xml clean debug
 
-# setup Go 1.2.2 for goandroid
-ENV GODIR $GOANDROID_DIR/go
-RUN hg clone -u go1.2.2 https://code.google.com/p/go $GODIR
-RUN cp -a $GOANDROID_DIR/patches $GODIR/.hg
-RUN echo '[extensions]' >> $GODIR/.hg/hgrc
-RUN echo 'mq = ' >> $GODIR/.hg/hgrc
-RUN echo 'codereview = !' >> $GODIR/.hg/hgrc
-RUN echo '[ui]' >> $GODIR/.hg/hgrc
-RUN echo 'username = Takashi Oguma<bear.mini@gmail.com>' >> $GODIR/.hg/hgrc
-RUN cd $GODIR/src && hg qpush -a && CGO_ENABLED=0 GOOS=linux GOARCH=arm ./make.bash CC="$NDK_ROOT/bin/arm-linux-androideabi-gcc" GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=1
-RUN echo 'export ANDROID_HOME=/android/sdk' >> $HOME/.bashrc
-RUN cd $GOANDROID_DIR/hello-gl2 && ./build.sh && ant -f android/build.xml clean debug
-RUN cd $GOANDROID_DIR/native-activity && ./build.sh && ant -f android/build.xml clean debug
-
-RUN echo 'export HOME=/root' >> $HOME/.bashrc
-RUN echo 'export PATH=$PATH:/root/goandroid/go/bin' >> $HOME/.bashrc
-RUN echo 'export GOPATH=/root/gopath' >> $HOME/.bashrc
-
+###
 # setup GLFW3
-RUN mkdir $HOME/gopath
-RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/egl
-#RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/opengles2
-RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/bearmini/opengles2
+RUN mkdir $GOPATH
+RUN $GOROOT/bin/go get github.com/remogatto/egl
+#RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/opengles2
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/bearmini/opengles2
 RUN git clone https://github.com/glfw/glfw.git $HOME/glfw && cd $HOME/glfw && mkdir build
 RUN cd $HOME/glfw/build && cmake -DBUILD_SHARED_LIBS=on .. && make && make install
-RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/go-gl/glfw3
-RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/jingweno/gotask
-RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/mandala
-RUN GOPATH=/root/gopath $GODIR/bin/go get github.com/remogatto/mandala-template
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/go-gl/glfw3
 
+###
+# setup mandala
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/jingweno/gotask
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala-template
+
+###
 # clean up
-#RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
