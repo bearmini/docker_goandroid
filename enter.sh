@@ -5,5 +5,16 @@ docker_enter() {
     boot2docker ssh -t sudo /var/lib/boot2docker/docker-enter "$@"
 }
 
+PLATFORM=`uname`
+case $PLATFORM in
+    Linux)
+        \command -v docker-enter >/dev/null 2>&1 || { echo >&2 "'docker-enter' is required.  Aborting."; exit 1; }
+        ENTER="sudo docker-enter"
+        ;;
+    *)
+        ENTER=docker_enter
+        ;;
+esac
+
 CID=$(docker ps --latest --quiet)
-docker_enter $CID /bin/bash
+$ENTER $CID /bin/bash
