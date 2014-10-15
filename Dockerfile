@@ -16,6 +16,7 @@ RUN echo 'export HOME=/root' >> $HOME/.bashrc
 RUN echo 'export ANDROID_HOME=/android/sdk' >> $HOME/.bashrc
 RUN echo 'export NDK_ROOT=/android/ndk32-toolchains' >> $HOME/.bashrc
 RUN echo 'export GOANDROID_DIR=/root/goandroid' >> $HOME/.bashrc
+RUN echo 'export GOANDROID=/root/goandroid/go/bin' >> $HOME/.bashrc
 RUN echo 'export GOROOT=$GOANDROID_DIR/go' >> $HOME/.bashrc
 RUN echo 'export GOPATH=/root/gopath' >> $HOME/.bashrc
 RUN echo 'export PATH=$PATH:/android/sdk/platform-tools:/android/sdk/build-tools:/android/sdk/tools:$GOROOT/bin:$GOPATH/bin' >> $HOME/.bashrc
@@ -59,7 +60,7 @@ RUN wget -q http://dl.google.com/android/android-sdk_$ANDROID_SDK_REV-linux.tgz
 RUN tar zxf android-sdk_$ANDROID_SDK_REV-linux.tgz
 RUN mv android-sdk-linux /android/sdk
 
-RUN (sleep 5; while [ 1 ]; do sleep 1; echo y; done ) | /android/sdk/tools/android update sdk --no-ui --filter platform,tool,platform-tool
+RUN (sleep 5; while [ 1 ]; do sleep 1; echo y; done ) | /android/sdk/tools/android update sdk --no-ui --filter android-20,android-19,build-tools-20.0.0,platform-tools
 
 ###
 # install Android NDK
@@ -88,8 +89,9 @@ RUN cd $GOROOT/src && hg qpush -a && CGO_ENABLED=0 GOOS=linux GOARCH=arm ./make.
 # setup GLFW3
 RUN mkdir $GOPATH
 RUN $GOROOT/bin/go get github.com/remogatto/egl
-#RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/opengles2
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/opengles2 || true    # ignoring build error on installation
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/bearmini/opengles2
+RUN ln -s $GOPATH/src/github.com/bearmini/opengles2 $GOPATH/src/github.com/remogatto/opengles2
 RUN git clone https://github.com/glfw/glfw.git $HOME/glfw && cd $HOME/glfw && mkdir build
 RUN cd $HOME/glfw/build && cmake -DBUILD_SHARED_LIBS=on .. && make && make install
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/go-gl/glfw3
@@ -99,6 +101,9 @@ RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/go-gl/glfw3
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/jingweno/gotask
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala-template
+RUN cd $GOPATH/src && $GOPATH/bin/mandala-template myapp && cd myapp && PATH=$PATH:$GOROOT/bin $GOPATH/bin/gotask init
+RUN cd $GOPATH && git clone https://github.com/remogatto/mandala-examples
+
 
 ###
 # clean up
