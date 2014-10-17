@@ -99,7 +99,9 @@ RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/go-gl/glfw3
 ###
 # setup mandala
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/jingweno/gotask
-RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala
+#RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala
+RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/bearmini/mandala
+RUN ln -s $GOPATH/src/github.com/bearmini/mandala $GOPATH/src/github.com/remogatto/mandala
 RUN GOPATH=$GOPATH $GOROOT/bin/go get github.com/remogatto/mandala-template
 RUN cd $GOPATH/src && $GOPATH/bin/mandala-template myapp && cd myapp && PATH=$PATH:$GOROOT/bin $GOPATH/bin/gotask init
 RUN cd $GOPATH && git clone https://github.com/remogatto/mandala-examples
